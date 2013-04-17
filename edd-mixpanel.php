@@ -79,7 +79,7 @@ final class EDD_Mixpanel {
 		}
 		$event_props['products'] = implode( ', ', $products );
 
-		wp_mixpanel()->track_event( 'Sale', $event_props );
+		wp_mixpanel()->track_event( 'EDD Sale', $event_props );
 
 		$trans_props = array(
 			'amount' => $amount
