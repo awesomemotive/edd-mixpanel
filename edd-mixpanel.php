@@ -22,8 +22,6 @@ final class EDD_Mixpanel {
 		// register our settings
 		add_filter( 'edd_settings_general', array( $this, 'settings' ), 1 );
 
-		$this->set_token();
-
 	}
 
 	private function set_token() {
@@ -39,6 +37,8 @@ final class EDD_Mixpanel {
 
 
 	public function track_purchase( $payment_id, $new_status, $old_status ) {
+
+		$this->set_token();
 
 		if( ! $this->track )
 			return;
