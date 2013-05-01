@@ -17,6 +17,10 @@ final class EDD_Mixpanel {
 		if( ! function_exists( 'wp_mixpanel' ) || ! function_exists( 'EDD' ) )
 			return;
 
+		// Track customers landing on the checkout page
+		add_action( 'template_redirect', array( $this, 'track_checkout_loaded' ) );
+
+		// Track completed purchases
 		add_action( 'edd_update_payment_status', array( $this, 'track_purchase' ), 100, 3 );
 
 		// register our settings
@@ -33,6 +37,43 @@ final class EDD_Mixpanel {
 
 		if( ! empty( $token ) )
 			$this->track = true;
+	}
+
+	public function track_checkout_loaded() {
+
+		// Only track the checkout page when the cart is not empty
+		if( ! edd_is_checkout() || ! edd_get_cart_contents() )
+			return;
+
+		$this->set_token();
+
+		if( ! $this->track )
+			return;
+
+		if( is_user_logged_in() ) {
+
+			$person_props       = array();
+			$person_props['ip'] = edd_get_ip();
+			wp_mixpanel()->track_person( get_current_user_id(), $person_props );
+
+		}
+
+		$event_props = array();
+
+		if( is_user_logged_in() )
+			$event_props['distinct_id'] = get_current_user_id();
+
+		$event_props['ip']         = edd_get_ip();
+		$event_props['session_id'] = EDD()->session->get_id();
+
+		$products = array();
+		foreach( edd_get_cart_contents() as $download ) {
+			$products[] = get_the_title( $download['id'] );
+		}
+		$event_props['products'] = implode( ', ', $products );
+
+		wp_mixpanel()->track_event( 'EDD Checkout Loaded', $event_props );
+
 	}
 
 
@@ -69,9 +110,12 @@ final class EDD_Mixpanel {
 
 		wp_mixpanel()->track_person( $distinct, $person_props );
 
-		$event_props                 = array();
-		$event_props['distinct_id']  = $distinct;
-		$event_props['amount']       = $amount;
+		$event_props                  = array();
+		$event_props['distinct_id']   = $distinct;
+		$event_props['amount']        = $amount;
+		$event_props['session_id']    = EDD()->session->get_id();
+		$event_props['purchase_date'] = strtotime( get_post_field( 'post_date', $payment_id ) );
+		$event_props['item_count']    = count( edd_get_cart_contents() );
 
 		$products = array();
 		foreach( $downloads as $download ) {
