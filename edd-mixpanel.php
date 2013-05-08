@@ -21,7 +21,7 @@ final class EDD_Mixpanel {
 		add_action( 'template_redirect', array( $this, 'track_checkout_loaded' ) );
 
 		// Track when customers add items to the cart
-		add_action( 'edd_add_to_cart', array( $this, 'track_added_to_cart' ) );
+		add_action( 'edd_post_add_to_cart', array( $this, 'track_added_to_cart' ) );
 
 		// Track completed purchases
 		add_action( 'edd_update_payment_status', array( $this, 'track_purchase' ), 100, 3 );
@@ -42,7 +42,7 @@ final class EDD_Mixpanel {
 			$this->track = true;
 	}
 
-	public function track_added_to_cart( $data ) {
+	public function track_added_to_cart( $download_id = 0, $options = array() ) {
 
 		$this->set_token();
 
@@ -64,7 +64,7 @@ final class EDD_Mixpanel {
 
 		$event_props['ip']           = edd_get_ip();
 		$event_props['session_id']   = EDD()->session->get_id();
-		$event_props['product_name'] = get_the_title( $data['download_id'] );
+		$event_props['product_name'] = get_the_title( $download_id );
 
 		wp_mixpanel()->track_event( 'EDD Added to Cart', $event_props );
 
