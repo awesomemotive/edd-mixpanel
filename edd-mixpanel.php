@@ -65,6 +65,9 @@ final class EDD_Mixpanel {
 		$event_props['ip']           = edd_get_ip();
 		$event_props['session_id']   = EDD()->session->get_id();
 		$event_props['product_name'] = get_the_title( $download_id );
+		if( function_exists( 'rcp_get_subscription' ) && is_user_logged_in() ) {
+			$event_props['subscription'] = rcp_get_subscription( get_current_user_id() );
+		}
 
 		wp_mixpanel()->track_event( 'EDD Added to Cart', $event_props );
 
@@ -127,7 +130,7 @@ final class EDD_Mixpanel {
 			return;
 
 		$user_info = edd_get_payment_meta_user_info( $payment_id );
-		$user_id   = $user_info['id'];
+		$user_id   = edd_get_payment_user_id();
 		$downloads = edd_get_payment_meta_cart_details( $payment_id );
 		$amount    = edd_get_payment_amount( $payment_id );
 
@@ -150,7 +153,7 @@ final class EDD_Mixpanel {
 		$event_props['amount']        = $amount;
 		$event_props['session_id']    = EDD()->session->get_id();
 		$event_props['purchase_date'] = strtotime( get_post_field( 'post_date', $payment_id ) );
-		$event_props['item_count']    = count( edd_get_cart_contents() );
+		$event_props['cart_count']    = edd_get_cart_quantity();
 
 		$products = array();
 		foreach( $downloads as $download ) {
