@@ -101,8 +101,12 @@ final class EDD_Mixpanel {
 		foreach( edd_get_cart_contents() as $download ) {
 			$products[] = get_the_title( $download['id'] );
 		}
-		$event_props['products'] = implode( ', ', $products );
-
+		$event_props['products']   = implode( ', ', $products );
+		$event_props['cart_count'] = edd_get_cart_quantity();
+		$event_props['cart_sum']   = edd_get_cart_subtotal();
+		if( function_exists( 'rcp_get_subscription' ) && is_user_logged_in() ) {
+			$event_props['subscription'] = rcp_get_subscription( get_current_user_id() );
+		}
 		wp_mixpanel()->track_event( 'EDD Checkout Loaded', $event_props );
 
 	}
