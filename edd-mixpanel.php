@@ -8,13 +8,19 @@
  */
 
 
+if( ! class_exists( 'Mixpanel' ) ) {
+	require dirname( __FILE__ ) . '/mixpanel/lib/Mixpanel.php';
+}
+
 final class EDD_Mixpanel {
 
 	private $track = false;
 
+	private $api;
+
 	function __construct() {
 
-		if( ! function_exists( 'wp_mixpanel' ) || ! function_exists( 'EDD' ) )
+		if( ! function_exists( 'EDD' ) )
 			return;
 
 		// Track customers landing on the checkout page
@@ -36,7 +42,7 @@ final class EDD_Mixpanel {
 
 		$token = isset( $edd_options['edd_mixpanel_api_key'] ) ? trim( $edd_options['edd_mixpanel_api_key'] ) : false;
 
-		wp_mixpanel()->set_api_key( $token );
+		$this->api = Mixpanel::getInstance( $token );
 
 		if( ! empty( $token ) )
 			$this->track = true;
@@ -53,8 +59,7 @@ final class EDD_Mixpanel {
 
 			$person_props       = array();
 			$person_props['ip'] = edd_get_ip();
-			wp_mixpanel()->track_person( get_current_user_id(), $person_props );
-
+			$this->api->people->set( get_current_user_id(), $person_props );
 		}
 
 		$event_props = array();
@@ -70,8 +75,7 @@ final class EDD_Mixpanel {
 			$event_props['subscription'] = rcp_get_subscription( get_current_user_id() );
 		}
 
-		wp_mixpanel()->track_event( 'EDD Added to Cart', $event_props );
-
+		$this->api->track( 'EDD Added to Cart', $event_props );
 	}
 
 	public function track_checkout_loaded() {
@@ -89,8 +93,8 @@ final class EDD_Mixpanel {
 
 			$person_props       = array();
 			$person_props['ip'] = edd_get_ip();
-			wp_mixpanel()->track_person( get_current_user_id(), $person_props );
 
+			$this->api->people->set( get_current_user_id(), $person_props );
 		}
 
 		$event_props = array();
@@ -111,7 +115,8 @@ final class EDD_Mixpanel {
 		if( function_exists( 'rcp_get_subscription' ) && is_user_logged_in() ) {
 			$event_props['subscription'] = rcp_get_subscription( get_current_user_id() );
 		}
-		wp_mixpanel()->track_event( 'EDD Checkout Loaded', $event_props );
+
+		$this->api->track( 'EDD Checkout Loaded', $event_props );
 
 	}
 
@@ -131,7 +136,7 @@ final class EDD_Mixpanel {
 			return;
 
 		$user_info = edd_get_payment_meta_user_info( $payment_id );
-		$user_id   = edd_get_payment_user_id();
+		$user_id   = edd_get_payment_user_id( $payment_id );
 		$downloads = edd_get_payment_meta_cart_details( $payment_id );
 		$amount    = edd_get_payment_amount( $payment_id );
 
@@ -141,13 +146,13 @@ final class EDD_Mixpanel {
 			$distinct = $user_id;
 		}
 
-		$person_props                 = array();
-		$person_props['first_name']   = $user_info['first_name'];
-		$person_props['last_name']    = $user_info['last_name'];
-		$person_props['email']        = $user_info['email'];
-		$person_props['ip']           = edd_get_ip();
+		$person_props                  = array();
+		$person_props['$first_name']   = $user_info['first_name'];
+		$person_props['$last_name']    = $user_info['last_name'];
+		$person_props['$email']        = $user_info['email'];
+		$person_props['ip']            = edd_get_ip();
 
-		wp_mixpanel()->track_person( $distinct, $person_props );
+		$this->api->people->set( $distinct, $person_props );
 
 		$event_props                  = array();
 		$event_props['distinct_id']   = $distinct;
@@ -162,13 +167,9 @@ final class EDD_Mixpanel {
 		}
 		$event_props['products'] = implode( ', ', $products );
 
-		wp_mixpanel()->track_event( 'EDD Sale', $event_props );
+		$this->api->track( 'EDD Sale', $event_props );
 
-		$trans_props = array(
-			'amount' => $amount
-		);
-		wp_mixpanel()->track_transaction( $distinct, $trans_props );
-
+		$this->api->people->trackCharge( $distinct, $amount );
 	}
 
 	/**
